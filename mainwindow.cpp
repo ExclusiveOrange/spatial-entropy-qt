@@ -1,6 +1,8 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+#include "entropy.hpp"
+
 #include <QDir>
 #include <QImage>
 #include <QFileDialog>
@@ -16,6 +18,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(this, &MainWindow::openImageSucceeded, this, &MainWindow::onOpenImageSuccess);
     connect(this, &MainWindow::openImageFailed, this, &MainWindow::onOpenImageFailure);
+    connect(this, &MainWindow::entropyImageReady, this, &MainWindow::onEntropyImageReady);
 }
 
 MainWindow::~MainWindow()
@@ -28,11 +31,10 @@ void MainWindow::asyncOpenImageFrom(const QString &imageFilename)
 {
     ui->statusbar->showMessage("Loading " + imageFilename);
     QtConcurrent::run( [=]() {
-        QImage image(imageFilename);
-        if( image.isNull() )
-            emit openImageFailed(imageFilename);
-        else
+        if( QImage image(imageFilename); not image.isNull() )
             emit openImageSucceeded(imageFilename, image);
+        else
+            emit openImageFailed(imageFilename);
     });
 }
 
@@ -52,6 +54,7 @@ void MainWindow::onOpenImageFailure(const QString & imageFilename)
 void MainWindow::setInputImage(const QImage &image)
 {
     this->inputImage = image;
+    entropyImage = QImage();
     showInputImage();
 }
 
@@ -67,10 +70,15 @@ void MainWindow::asyncCalculateEntropyImage()
 {
     ui->statusbar->showMessage("Calculating entropy...");
     QtConcurrent::run( [=]() {
-        QImage image;
-        // todo: outsource the calculation to a dedicated function, or something
-        // todo: emit a signal or something
+        QImage entropyImage = Entropy::calculateEntropyImageFrom( this->inputImage );
+        emit entropyImageReady( entropyImage );
     });
+}
+
+void MainWindow::onEntropyImageReady(const QImage &image)
+{
+    this->entropyImage = image;
+    showEntropyImage();
 }
 
 void MainWindow::showEntropyImage()

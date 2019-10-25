@@ -1,5 +1,4 @@
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#pragma once
 
 #include <QMainWindow>
 
@@ -18,6 +17,7 @@ public:
 signals:
     void openImageSucceeded(const QString &imageFilename, const QImage &image);
     void openImageFailed(const QString &imageFilename);
+    void entropyImageReady(const QImage &image);
 
 private:
     QImage inputImage;
@@ -30,16 +30,14 @@ private:
     void showInputImage();
 
     void asyncCalculateEntropyImage();
+    void onEntropyImageReady(const QImage &image);
     void showEntropyImage();
 
 private slots:
     void on_btnChooseImage_clicked();
-
     void on_btnShowEntropy_clicked();
-
     void on_btnShowOriginal_clicked();
 
 private:
     Ui::MainWindow *ui;
 };
-#endif // MAINWINDOW_H

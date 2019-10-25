@@ -16,10 +16,12 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    entropy.cpp \
     main.cpp \
     mainwindow.cpp
 
 HEADERS += \
+    entropy.hpp \
     mainwindow.h
 
 FORMS += \

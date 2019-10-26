@@ -1,6 +1,7 @@
 #include "entropy.hpp"
 
 #include <array>
+#include <cmath>
 
 namespace Entropy
 {
@@ -41,15 +42,11 @@ QImage joinRgbFrom(const std::array<QImage, 3> &r_g_b)
     {
         for( int x = 0; x < width; ++x )
         {
-            QRgb r = r_g_b[0].pixel(x, y) & 0xff;
-            QRgb g = r_g_b[1].pixel(x, y) & 0xff;
-            QRgb b = r_g_b[2].pixel(x, y) & 0xff;
+            QRgb r = r_g_b[0].pixel(x, y);
+            QRgb g = r_g_b[1].pixel(x, y);
+            QRgb b = r_g_b[2].pixel(x, y);
 
-            QRgb outRgb =
-                    0xff000000 |
-                    (r << 16) |
-                    (g << 8) |
-                    b;
+            QRgb outRgb = 0xff000000 | (r & 0xff0000) | (g & 0xff00) | (b & 0xff);
 
             rgb.setPixel(x, y, outRgb);
         }
@@ -58,9 +55,78 @@ QImage joinRgbFrom(const std::array<QImage, 3> &r_g_b)
     return rgb;
 }
 
+bool isGrayscale( const QImage &image )
+{
+    return image.format() == QImage::Format_Grayscale8 || image.format() == QImage::Format_Grayscale16;
+}
+
+QImage calculateGrayscaleEntropyImageFrom( const QImage &image )
+{
+    constexpr int radius_x = 5;
+    constexpr int radius_y = 5;
+
+    const int width = image.width();
+    const int height = image.height();
+
+    QImage out(width, height, QImage::Format_Grayscale8);
+
+    for( int y = 0; y < height; ++y )
+        for( int x = 0; x < width; ++x )
+        {
+            int count = 0;
+            int counts[256];
+            memset(counts, 0, sizeof(counts));
+
+            for( int kernel_y = y - radius_y; kernel_y < y + radius_y; ++kernel_y )
+                if( kernel_y >= 0 && kernel_y < height )
+                    for( int kernel_x = x - radius_x; kernel_x < x + radius_x; ++kernel_x )
+                        if( kernel_x >= 0 && kernel_x < width )
+                        {
+                            QRgb value = image.pixel( kernel_x, kernel_y ) & 0xff;
+                            ++counts[ value ];
+                            ++count;
+                        }
+
+            QRgb out_pixel = 0xff000000;
+
+            if( count > 0 )
+            {
+                float rcount = 1.f / (float)count;
+                float entropy = 0.f;
+
+                for( int c : counts )
+                    if( c != 0 )
+                    {
+
+                        float prob = (float)c * rcount;
+                        entropy -= prob * log2f( prob );
+                    }
+
+                float entropy_limit = -log2f( rcount );
+                float proportional_entropy = entropy / entropy_limit;
+
+                QRgb mono = (QRgb)(255.f * proportional_entropy);
+
+                out_pixel |= (mono << 16) | (mono << 8) | mono;
+            }
+
+            out.setPixel( x, y, out_pixel );
+        }
+
+    return out;
+}
+
 QImage calculateEntropyImageFrom( const QImage &image )
 {
-    // TEST: split and join
-    return joinRgbFrom( splitRgbFrom( image ));
+    if( isGrayscale( image ))
+        return calculateGrayscaleEntropyImageFrom( image );
+
+    // else assume rgb
+    std::array<QImage, 3> r_g_b = splitRgbFrom( image );
+
+    for( QImage & channel : r_g_b )
+        channel = calculateGrayscaleEntropyImageFrom( channel );
+
+    return joinRgbFrom( r_g_b );
 }
 }

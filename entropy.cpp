@@ -1,5 +1,7 @@
 #include "entropy.hpp"
 
+#include <QtConcurrent>
+
 #include <array>
 #include <cmath>
 
@@ -74,8 +76,7 @@ QImage calculateGrayscaleEntropyImageFrom( const QImage &image )
         for( int x = 0; x < width; ++x )
         {
             int count = 0;
-            int counts[256];
-            memset(counts, 0, sizeof(counts));
+            int counts[256] = {0};
 
             for( int kernel_y = y - radius_y; kernel_y < y + radius_y; ++kernel_y )
                 if( kernel_y >= 0 && kernel_y < height )
@@ -97,7 +98,6 @@ QImage calculateGrayscaleEntropyImageFrom( const QImage &image )
                 for( int c : counts )
                     if( c != 0 )
                     {
-
                         float prob = (float)c * rcount;
                         entropy -= prob * log2f( prob );
                     }
@@ -120,12 +120,12 @@ QImage calculateEntropyImageFrom( const QImage &image )
 {
     if( isGrayscale( image ))
         return calculateGrayscaleEntropyImageFrom( image );
-
     // else assume rgb
+
     std::array<QImage, 3> r_g_b = splitRgbFrom( image );
 
-    for( QImage & channel : r_g_b )
-        channel = calculateGrayscaleEntropyImageFrom( channel );
+    QtConcurrent::map( r_g_b, [](QImage &channel){ channel = calculateGrayscaleEntropyImageFrom( channel ); })
+    .waitForFinished();
 
     return joinRgbFrom( r_g_b );
 }

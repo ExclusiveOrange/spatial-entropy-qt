@@ -105,6 +105,9 @@ QImage calculateGrayscaleEntropyImageFrom( const QImage &image )
                 float entropy_limit = -log2f( rcount );
                 float proportional_entropy = entropy / entropy_limit;
 
+                // EXPERIMENT
+                proportional_entropy *= proportional_entropy;
+
                 QRgb mono = (QRgb)(255.f * proportional_entropy);
 
                 out_pixel |= (mono << 16) | (mono << 8) | mono;

@@ -18,6 +18,7 @@ signals:
     void openImageSucceeded(const QString &imageFilename, const QImage &image);
     void openImageFailed(const QString &imageFilename);
     void entropyImageReady(const QImage &image);
+    void imageSaved(const QString &imageFilename);
 
 private:
     QImage inputImage;
@@ -33,10 +34,14 @@ private:
     void onEntropyImageReady(const QImage &image);
     void showEntropyImage();
 
+    void asyncSaveImageTo(const QImage &image, const QString &imageFilename);
+    void onImageSaved(const QString &imageFilename);
+
 private slots:
     void on_btnChooseImage_clicked();
     void on_btnShowEntropy_clicked();
     void on_btnShowOriginal_clicked();
+    void on_btnSaveEntropyImage_clicked();
 
 private:
     Ui::MainWindow *ui;

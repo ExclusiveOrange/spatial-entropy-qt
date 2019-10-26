@@ -28,6 +28,16 @@
        </widget>
       </item>
       <item>
+       <widget class="QPushButton" name="btnShowOriginal">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="text">
+         <string>Show Original</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QPushButton" name="btnShowEntropy">
         <property name="enabled">
          <bool>false</bool>
@@ -38,12 +48,12 @@
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="btnShowOriginal">
+       <widget class="QPushButton" name="btnSaveEntropyImage">
         <property name="enabled">
          <bool>false</bool>
         </property>
         <property name="text">
-         <string>Show Original</string>
+         <string>Save Entropy Image ...</string>
         </property>
        </widget>
       </item>

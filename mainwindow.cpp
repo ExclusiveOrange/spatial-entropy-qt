@@ -19,6 +19,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this, &MainWindow::openImageSucceeded, this, &MainWindow::onOpenImageSuccess);
     connect(this, &MainWindow::openImageFailed, this, &MainWindow::onOpenImageFailure);
     connect(this, &MainWindow::entropyImageReady, this, &MainWindow::onEntropyImageReady);
+    connect(this, &MainWindow::imageSaved, this, &MainWindow::onImageSaved);
 }
 
 MainWindow::~MainWindow()
@@ -53,6 +54,7 @@ void MainWindow::onOpenImageFailure(const QString & imageFilename)
 
 void MainWindow::setInputImage(const QImage &image)
 {
+    ui->btnSaveEntropyImage->setEnabled(false);
     this->inputImage = image;
     entropyImage = QImage();
     showInputImage();
@@ -79,6 +81,8 @@ void MainWindow::onEntropyImageReady(const QImage &image)
 {
     this->entropyImage = image;
     showEntropyImage();
+    ui->statusbar->showMessage("Entropy calculated.", 5000);
+    ui->btnSaveEntropyImage->setEnabled(true);
 }
 
 void MainWindow::showEntropyImage()
@@ -91,6 +95,20 @@ void MainWindow::showEntropyImage()
         ui->lblImage->setPixmap(QPixmap::fromImage(this->entropyImage));
         ui->btnShowOriginal->setEnabled(true);
     }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void MainWindow::asyncSaveImageTo(const QImage &image, const QString &imageFilename)
+{
+    QtConcurrent::run( [=]() {
+        image.save(imageFilename);
+        emit imageSaved(imageFilename);
+    });
+}
+
+void MainWindow::onImageSaved(const QString &imageFilename)
+{
+    ui->statusbar->showMessage("Image saved to " + imageFilename, 5000);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -115,4 +133,17 @@ void MainWindow::on_btnShowEntropy_clicked()
 void MainWindow::on_btnShowOriginal_clicked()
 {
     showInputImage();
+}
+
+void MainWindow::on_btnSaveEntropyImage_clicked()
+{
+    QString imageFilename = QFileDialog::getSaveFileName(
+                this, "Choose a location and new file name", QDir::homePath(),
+                "Images (*.bmp *.gif *.jpg *.png)");
+
+    if( not imageFilename.isEmpty() )
+    {
+        ui->statusbar->showMessage("Saving entropy image to " + imageFilename);
+        asyncSaveImageTo( entropyImage, imageFilename );
+    }
 }

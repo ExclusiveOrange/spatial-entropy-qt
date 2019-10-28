@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 
 #include "entropy.hpp"
+#include "entropyfast.hpp"
 
 #include <QDir>
 #include <QImage>
@@ -72,16 +73,19 @@ void MainWindow::asyncCalculateEntropyImage()
 {
     ui->statusbar->showMessage("Calculating entropy...");
     QtConcurrent::run( [=]() {
-        QImage entropyImage = Entropy::calculateEntropyImageFrom( this->inputImage );
-        emit entropyImageReady( entropyImage );
+        QElapsedTimer elapsedTimer;
+        elapsedTimer.start();
+//        QImage entropyImage = Entropy::calculateEntropyImageFrom( this->inputImage );
+        QImage entropyImage = EntropyFast::calculateEntropyImageFrom( this->inputImage );
+        emit entropyImageReady( entropyImage, elapsedTimer.nsecsElapsed() );
     });
 }
 
-void MainWindow::onEntropyImageReady(const QImage &image)
+void MainWindow::onEntropyImageReady(const QImage &image, qint64 nsecsElapsed)
 {
     this->entropyImage = image;
     showEntropyImage();
-    ui->statusbar->showMessage("Entropy calculated.", 5000);
+    ui->statusbar->showMessage(QString("Entropy calculated in %1 milliseconds").arg(static_cast<double>(nsecsElapsed) / 1000000), 5000);
     ui->btnSaveEntropyImage->setEnabled(true);
 }
 

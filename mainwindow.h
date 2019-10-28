@@ -17,7 +17,7 @@ public:
 signals:
     void openImageSucceeded(const QString &imageFilename, const QImage &image);
     void openImageFailed(const QString &imageFilename);
-    void entropyImageReady(const QImage &image);
+    void entropyImageReady(const QImage &image, qint64 nsecsElapsed);
     void imageSaved(const QString &imageFilename);
 
 private:
@@ -31,7 +31,7 @@ private:
     void showInputImage();
 
     void asyncCalculateEntropyImage();
-    void onEntropyImageReady(const QImage &image);
+    void onEntropyImageReady(const QImage &image, qint64 nsecsElapsed);
     void showEntropyImage();
 
     void asyncSaveImageTo(const QImage &image, const QString &imageFilename);

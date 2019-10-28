@@ -74,28 +74,23 @@ ColorPlane calculateEntropyPlaneFrom( const ColorPlane &plane )
                         }
                 }
 
-            if( count > 0 )
-            {
-                float rcount = 1.f / static_cast<float>(count);
-                float entropy = 0.f;
+            float rcount = 1.f / static_cast<float>(count);
+            float entropy = 0.f;
 
-                for( int c : counts )
-                    if( c != 0 )
-                    {
-                        float prob = static_cast<float>(c) * rcount;
-                        entropy -= prob * log2f( prob );
-                    }
+            for( int c : counts )
+                if( c != 0 )
+                {
+                    float prob = static_cast<float>(c) * rcount;
+                    entropy -= prob * log2f( prob );
+                }
 
-                float entropy_limit = -log2f( rcount );
-                float proportional_entropy = entropy / entropy_limit;
+            float entropy_limit = -log2f( rcount );
+            float proportional_entropy = entropy / entropy_limit;
 
-                // EXPERIMENT
-                proportional_entropy *= proportional_entropy;
+            // EXPERIMENT
+            proportional_entropy *= proportional_entropy;
 
-                p_output_row[ x ] = static_cast< uint8_t >( 255.f * proportional_entropy );
-            }
-            else
-                p_output_row[ x ] = 0;
+            p_output_row[ x ] = static_cast< uint8_t >( 255.f * proportional_entropy );
         }
     }
 

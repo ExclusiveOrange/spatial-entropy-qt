@@ -14,7 +14,7 @@
    <bool>false</bool>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>Spatial Entropy</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <property name="enabled">

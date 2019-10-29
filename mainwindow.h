@@ -21,19 +21,21 @@ signals:
     void imageSaved(const QString &imageFilename);
 
 private:
+    QString inputImageFilename;
     QImage inputImage;
     QImage entropyImage;
 
     void asyncOpenImageFrom(const QString &imageFilename);
     void onOpenImageSuccess(const QString &imageFilename, const QImage &image);
     void onOpenImageFailure(const QString &imageFilename);
-    void setInputImage(const QImage &image);
+    void setInputImage(const QString &imageFilename, const QImage &image);
     void showInputImage();
 
     void asyncCalculateEntropyImage();
     void onEntropyImageReady(const QImage &image, qint64 nsecsElapsed);
     void showEntropyImage();
 
+    QString getSuggestedEntropyImageFilename() const;
     void asyncSaveImageTo(const QImage &image, const QString &imageFilename);
     void onImageSaved(const QString &imageFilename);
 

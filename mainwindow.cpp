@@ -7,6 +7,7 @@
 #include <QDir>
 #include <QImage>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QtConcurrent>
 
 #include <ciso646>
@@ -31,6 +32,7 @@ MainWindow::~MainWindow()
 ////////////////////////////////////////////////////////////////////////////////
 void MainWindow::asyncOpenImageFrom(const QString &imageFilename)
 {
+    ui->wdgButtons->setEnabled(false);
     ui->statusbar->showMessage("Loading " + imageFilename);
     QtConcurrent::run( [=]() {
         if( QImage image(imageFilename); not image.isNull() )
@@ -42,20 +44,21 @@ void MainWindow::asyncOpenImageFrom(const QString &imageFilename)
 
 void MainWindow::onOpenImageSuccess(const QString &imageFilename, const QImage & image)
 {
-    setInputImage(image);
+    setInputImage(imageFilename, image);
     ui->statusbar->showMessage("Loaded " + imageFilename, 5000);
-    ui->btnChooseImage->setEnabled(true);
+    ui->wdgButtons->setEnabled(true);
 }
 
 void MainWindow::onOpenImageFailure(const QString & imageFilename)
 {
     ui->statusbar->showMessage("Failed to load image: " + imageFilename);
-    ui->btnChooseImage->setEnabled(true);
+    ui->wdgButtons->setEnabled(true);
 }
 
-void MainWindow::setInputImage(const QImage &image)
+void MainWindow::setInputImage(const QString &imageFilename, const QImage &image)
 {
     ui->btnSaveEntropyImage->setEnabled(false);
+    this->inputImageFilename = imageFilename;
     this->inputImage = image;
     entropyImage = QImage();
     showInputImage();
@@ -71,11 +74,11 @@ void MainWindow::showInputImage()
 ////////////////////////////////////////////////////////////////////////////////
 void MainWindow::asyncCalculateEntropyImage()
 {
+    ui->wdgButtons->setEnabled(false);
     ui->statusbar->showMessage("Calculating entropy...");
     QtConcurrent::run( [=]() {
         QElapsedTimer elapsedTimer;
         elapsedTimer.start();
-//        QImage entropyImage = Entropy::calculateEntropyImageFrom( this->inputImage );
         QImage entropyImage = EntropyFast::calculateEntropyImageFrom( this->inputImage );
         emit entropyImageReady( entropyImage, elapsedTimer.nsecsElapsed() );
     });
@@ -87,6 +90,7 @@ void MainWindow::onEntropyImageReady(const QImage &image, qint64 nsecsElapsed)
     showEntropyImage();
     ui->statusbar->showMessage(QString("Entropy calculated in %1 milliseconds").arg(static_cast<double>(nsecsElapsed) / 1000000), 5000);
     ui->btnSaveEntropyImage->setEnabled(true);
+    ui->wdgButtons->setEnabled(true);
 }
 
 void MainWindow::showEntropyImage()
@@ -102,8 +106,16 @@ void MainWindow::showEntropyImage()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+QString MainWindow::getSuggestedEntropyImageFilename() const
+{
+    QFileInfo inputFileInfo( inputImageFilename );
+    return inputFileInfo.path() + QDir::separator() + inputFileInfo.completeBaseName() + "-entropy.jpg";
+}
+
 void MainWindow::asyncSaveImageTo(const QImage &image, const QString &imageFilename)
 {
+    ui->wdgButtons->setEnabled(false);
+    ui->statusbar->showMessage("Saving entropy image to " + imageFilename);
     QtConcurrent::run( [=]() {
         image.save(imageFilename);
         emit imageSaved(imageFilename);
@@ -113,6 +125,7 @@ void MainWindow::asyncSaveImageTo(const QImage &image, const QString &imageFilen
 void MainWindow::onImageSaved(const QString &imageFilename)
 {
     ui->statusbar->showMessage("Image saved to " + imageFilename, 5000);
+    ui->wdgButtons->setEnabled(true);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -123,10 +136,7 @@ void MainWindow::on_btnChooseImage_clicked()
                 "Images (*.bmp *.gif *.jpg *.png)");
 
     if( not imageFilename.isEmpty() )
-    {
-        ui->btnChooseImage->setDisabled(true);
         asyncOpenImageFrom(imageFilename);
-    }
 }
 
 void MainWindow::on_btnShowEntropy_clicked()
@@ -142,12 +152,10 @@ void MainWindow::on_btnShowOriginal_clicked()
 void MainWindow::on_btnSaveEntropyImage_clicked()
 {
     QString imageFilename = QFileDialog::getSaveFileName(
-                this, "Choose a location and new file name", QDir::homePath(),
+                this, "Choose a location and new file name",
+                getSuggestedEntropyImageFilename(),
                 "Images (*.bmp *.gif *.jpg *.png)");
 
     if( not imageFilename.isEmpty() )
-    {
-        ui->statusbar->showMessage("Saving entropy image to " + imageFilename);
         asyncSaveImageTo( entropyImage, imageFilename );
-    }
 }

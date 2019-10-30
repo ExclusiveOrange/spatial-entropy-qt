@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <numeric>
 
 namespace
 {
@@ -45,46 +46,53 @@ ColorPlane calculateEntropyPlaneFrom( const ColorPlane &plane )
 {
     constexpr int radius_x = 5;
     constexpr int radius_y = 5;
+    constexpr int max_count = (radius_x + 1 + radius_x) * (radius_y + 1 + radius_y);
 
     const int width = plane.width;
     const int height = plane.height;
 
     ColorPlane entropyPlane( width, height );
 
+    std::unique_ptr<float[]> log2_table{ new float[ max_count + 1]};
+    log2_table[0] = 0.f;
+    for( unsigned i = 1; i <= max_count; ++i )
+        log2_table[i] = log2f( static_cast<float>(i) );
+
     for( int y = 0; y < height; ++y )
     {
         uint8_t * p_output_row = entropyPlane.row( y );
 
+        int kernel_y_min = std::max(0, y - radius_x);
+        int kernel_y_max = std::min(height, y + radius_y + 1);
+
         for( int x = 0; x < width; ++x )
         {
-            int count = 0;
             int counts[256] = {0};
 
-            for( int kernel_y = y - radius_y; kernel_y < y + radius_y; ++kernel_y )
-                if( kernel_y >= 0 && kernel_y < height )
+            int kernel_x_min = std::max(0, x - radius_x);
+            int kernel_x_max = std::min(width, x + radius_x + 1);
+
+            for( int kernel_y = kernel_y_min; kernel_y < kernel_y_max; ++kernel_y )
+            {
+                uint8_t * p_input_row = plane.row( kernel_y );
+
+                for( int kernel_x = kernel_x_min; kernel_x < kernel_x_max; ++kernel_x )
                 {
-                    uint8_t * p_input_row = plane.row( kernel_y );
-
-                    for( int kernel_x = x - radius_x; kernel_x < x + radius_x; ++kernel_x )
-                        if( kernel_x >= 0 && kernel_x < width )
-                        {
-                            uint8_t value = p_input_row[ kernel_x ];
-                            ++counts[ value ];
-                            ++count;
-                        }
+                    uint8_t value = p_input_row[ kernel_x ];
+                    ++counts[ value ];
                 }
+            }
 
-            float rcount = 1.f / static_cast<float>(count);
+            int count = (kernel_y_max - kernel_y_min) * (kernel_x_max - kernel_x_min);
+            float log2_count = log2_table[ static_cast<unsigned>( count )];
+
             float entropy = 0.f;
-
             for( int c : counts )
-                if( c != 0 )
-                {
-                    float prob = static_cast<float>(c) * rcount;
-                    entropy -= prob * log2f( prob );
-                }
+              entropy -= static_cast<float>(c) * (log2_table[ static_cast<unsigned>( c )] - log2_count);
 
-            float entropy_limit = -log2f( rcount );
+            entropy /= count;
+
+            float entropy_limit = log2_count - log2_table[1]; // -log2f( 1 / count );
             float proportional_entropy = entropy / entropy_limit;
 
             // EXPERIMENT
